@@ -43,4 +43,17 @@
         </plugins>
     </build>
 
+    <distributionManagement>
+        <repository>
+            <id>central</id>
+            <name>pf-linux-releases</name>
+            <url>https://repo.pnet.ch/artifactory/middleware-maven-releases-local/</url>
+        </repository>
+        <snapshotRepository>
+            <id>snapshots</id>
+            <name>pf-linux-snapshots</name>
+            <url>https://repo.pnet.ch/artifactory/middleware-maven-snapshots-local/</url>
+        </snapshotRepository>
+    </distributionManagement>
+
 </project>
