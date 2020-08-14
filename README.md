@@ -13,9 +13,9 @@ It can be importer in your Maven project with
 
 ```
 <dependency>
-	<groupId>com.github.postfinance.prometheus</groupId>
-	<artifactId>apache-exporter</artifactId>
-	<version>0.0.0-SNAPSHOT</version>
+  <groupId>com.github.postfinance.prometheus</groupId>
+  <artifactId>apache-exporter</artifactId>
+  <version>1.0.0</version>
 </dependency>
 
 ```
