@@ -13,12 +13,19 @@ It can be importer in your Maven project with
 
 ```
 <dependency>
-    <groupId>ch.postfinance.prometheus</groupId>
-    <artifactId>apache-exporter</artifactId>
-    <version>v1.0.0</version>
+	<groupId>com.github.postfinance.prometheus</groupId>
+	<artifactId>apache-exporter</artifactId>
+	<version>0.0.0-SNAPSHOT</version>
 </dependency>
 
 ```
+
+The Apache ModStatus URL where the metrics are read, can be configured with
+
+* A System Property: httpdModStatusUrl
+* An Environment Property: HTTPD_MOD_STATUS_URL
+
+The default value is http://localhost/server-status?auto
 
 To obtain the metrics, use the method:
 

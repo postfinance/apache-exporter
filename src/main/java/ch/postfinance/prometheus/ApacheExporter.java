@@ -136,7 +136,7 @@ public class ApacheExporter {
 
     String readApacheStatus() throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost/server-status?auto"))
+                .uri(URI.create(getStatusUrl()))
                 .timeout(Duration.ofSeconds(5))
                 .GET()
                 .build();
@@ -202,6 +202,20 @@ public class ApacheExporter {
         }
 
         return "unknown";
+    }
+
+    static String getStatusUrl(){
+
+        String statusUrl = System.getProperty("httpdModStatusUrl");
+
+        if(statusUrl == null || statusUrl.trim().isEmpty()) {
+            statusUrl = System.getenv("HTTPD_MOD_STATUS_URL");
+
+            if(statusUrl == null || statusUrl.trim().isEmpty())
+                statusUrl = "http://localhost/server-status?auto";
+        }
+
+        return statusUrl;
     }
 
 }

@@ -12,12 +12,24 @@ public class ApacheExporterTest {
     public void export() {
         ApacheExporter exporter = new ApacheExporter();
         try {
-            for (int i = 0; i < 2; i++) {
+            for (int i = 0; i < 5; i++) {
                 System.out.println(exporter.export());
                 Thread.sleep(1000);
             }
         } catch (IOException | InterruptedException e) {
             fail(e.getMessage());
         }
+    }
+
+    @Test
+    public void testProperty(){
+
+        assertEquals(ApacheExporter.getStatusUrl(), "http://localhost/server-status?auto");
+
+        System.setProperty("httpdModStatusUrl", "http://e1-xxx-alsu001/server-status?auto");
+
+        assertEquals(ApacheExporter.getStatusUrl(), "http://e1-xxx-alsu001/server-status?auto");
+
+
     }
 }
