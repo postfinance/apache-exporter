@@ -17,6 +17,16 @@ import java.time.Instant;
 
 public class ApacheExporter {
 
+    private String statusUrl;
+
+    public ApacheExporter(){
+
+    }
+
+    public ApacheExporter(String statusUrl){
+        this.statusUrl = statusUrl;
+    }
+
     CollectorRegistry registry = new CollectorRegistry();
 
     Counter scrapesTotal = Counter.build()
@@ -204,18 +214,23 @@ public class ApacheExporter {
         return "unknown";
     }
 
-    static String getStatusUrl(){
+    String getStatusUrl() {
 
-        String statusUrl = System.getProperty("httpdModStatusUrl");
+        if (this.statusUrl != null) {
+            return this.statusUrl;
+        } else {
 
-        if(statusUrl == null || statusUrl.trim().isEmpty()) {
-            statusUrl = System.getenv("HTTPD_MOD_STATUS_URL");
+            String statusUrl = System.getProperty("httpdModStatusUrl");
 
-            if(statusUrl == null || statusUrl.trim().isEmpty())
-                statusUrl = "http://localhost/server-status?auto";
+            if (statusUrl == null || statusUrl.trim().isEmpty()) {
+                statusUrl = System.getenv("HTTPD_MOD_STATUS_URL");
+
+                if (statusUrl == null || statusUrl.trim().isEmpty())
+                    statusUrl = "http://localhost/server-status?auto";
+            }
+
+            return statusUrl;
         }
-
-        return statusUrl;
     }
 
 }

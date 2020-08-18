@@ -24,11 +24,17 @@ public class ApacheExporterTest {
     @Test
     public void testProperty(){
 
-        assertEquals(ApacheExporter.getStatusUrl(), "http://localhost/server-status?auto");
+        ApacheExporter exporter = new ApacheExporter();
+
+        assertEquals(exporter.getStatusUrl(), "http://localhost/server-status?auto");
 
         System.setProperty("httpdModStatusUrl", "http://e1-xxx-alsu001/server-status?auto");
 
-        assertEquals(ApacheExporter.getStatusUrl(), "http://e1-xxx-alsu001/server-status?auto");
+        assertEquals(exporter.getStatusUrl(), "http://e1-xxx-alsu001/server-status?auto");
+
+        exporter = new ApacheExporter("http://host:port/midw-status");
+
+        assertEquals(exporter.getStatusUrl(), "http://host:port/midw-status");
 
 
     }
