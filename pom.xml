@@ -74,7 +74,7 @@
         <repository>
             <id>github</id>
             <name>GitHub PostFinance Apache Maven Packages</name>
-            <url>https://maven.pkg.github.com/postfinance/apache_exporter</url>
+            <url>https://maven.pkg.github.com/postfinance/apache-exporter</url>
         </repository>
     </distributionManagement>
 </project>
