@@ -1,5 +1,6 @@
 package ch.postfinance.prometheus;
 
+import io.prometheus.client.Collector;
 import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.Counter;
 import io.prometheus.client.Gauge;
@@ -14,6 +15,8 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
 
 public class ApacheExporter {
 
@@ -105,6 +108,19 @@ public class ApacheExporter {
         osw.close();
 
         return new String(stream.toByteArray());
+    }
+
+    public ArrayList<Collector.MetricFamilySamples> exportSamplesList() {
+        try {
+            mapStatusToMetrics(readApacheStatus());
+            serverUpGauge.set(1);
+        } catch (InterruptedException | IOException e) {
+            scrapeErrorsTotal.inc();
+            serverUpGauge.set(0);
+        }
+
+        return Collections.list(registry.metricFamilySamples());
+
     }
 
     private void mapStatusToMetrics(String statusData) {

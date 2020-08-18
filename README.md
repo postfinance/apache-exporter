@@ -1,13 +1,13 @@
 # Apache Exporter for Prometheus
 Exports server statistics provided by mod_status of an Apache HTTP server to Prometheus metrics format
 
+## Usage 
+
 It can be built with:
 
 ```
 mvn clean install
 ```
-
-## Usage 
 
 It can be importer in your Maven project with
 
@@ -15,26 +15,32 @@ It can be importer in your Maven project with
 <dependency>
   <groupId>com.github.postfinance.prometheus</groupId>
   <artifactId>apache-exporter</artifactId>
-  <version>1.0.0</version>
+  <version>VERSION</version>
 </dependency>
 
 ```
 
+### ModStatus URL
+
 The Apache ModStatus URL where the metrics are read, can be configured with
 
+* A parameter in the ApacheExporter constructor
 * A System Property: httpdModStatusUrl
 * An Environment Property: HTTPD_MOD_STATUS_URL
 
 The default value is http://localhost/server-status?auto
 
-To obtain the metrics, use the method:
+### Apache HTTPD Metrics
 
+To obtain the metrics for apache, an istance of the ApacheExporter class should be created 
+and one of the following methods called:
+
+* First method
 
 ```
 public String export() throws IOException
 ```
-
-It returns a String in the format:
+returns a String in the format:
 
 ```
 # HELP apache_exporter_build_info A metric with a constant '1' value labeled by version, revision, branch, and goversion from which apache_exporter was built.
@@ -68,3 +74,11 @@ apache_workers{state="busy"} 2
 apache_workers{state="idle"} 6
 
 ```
+
+* Second method
+
+```
+public ArrayList<Collector.MetricFamilySamples> exportSamplesList()
+```
+
+It returns a list of samples of type Collector.MetricFamilySamples
