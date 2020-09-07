@@ -39,6 +39,7 @@ and one of the following methods called:
 
 ```
 public String export() throws IOException
+public String export(String interfaceName) throws IOException
 ```
 returns a String in the format:
 
@@ -75,10 +76,26 @@ apache_workers{state="idle"} 6
 
 ```
 
+Example:
+
+```
+  ApacheExporter exporter = new ApacheExporter("http://myhost:7070/midw-status?auto");
+  exporter.export("lo")
+```
+
 * Second method
 
 ```
 public ArrayList<Collector.MetricFamilySamples> exportSamplesList()
+public ArrayList<Collector.MetricFamilySamples> exportSamplesList(String interfaceName)
 ```
 
 It returns a list of samples of type Collector.MetricFamilySamples
+
+
+Example:
+
+```
+  ApacheExporter exporter = new ApacheExporter("http://myhost:7070/midw-status?auto");
+  List<Collector.MetricFamilySamples> mfsList = exporter.exportSamplesList("eth0")
+```

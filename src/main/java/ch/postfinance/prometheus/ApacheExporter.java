@@ -5,28 +5,34 @@ import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.Counter;
 import io.prometheus.client.Gauge;
 import io.prometheus.client.exporter.common.TextFormat;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.BasicResponseHandler;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Enumeration;
 
 public class ApacheExporter {
 
     private String statusUrl;
 
-    public ApacheExporter(){
+    public ApacheExporter() {
 
     }
 
-    public ApacheExporter(String statusUrl){
+    public ApacheExporter(String statusUrl) {
         this.statusUrl = statusUrl;
     }
 
@@ -89,11 +95,20 @@ public class ApacheExporter {
             .help("apache_uptime_seconds_total Current uptime in seconds")
             .register(registry);
 
-    public String export() throws IOException {
+    /**
+     * Returns an a string containing the apache metrics in prometheus format.
+     * Wenn the URL of the exporter is not reachable, it returns a metric
+     * "apache_scrape_errors_total" greater then zero.
+     * <p>
+     *
+     * @param  interfaceName  the name of the interface to bind (ex : lo, eth0)
+     * @return      the string containing the apache metrics in prometheus format
+     */
+    public String export(String interfaceName) throws IOException {
         try {
-            mapStatusToMetrics(readApacheStatus());
+            mapStatusToMetrics(readApacheStatus(interfaceName));
             serverUpGauge.set(1);
-        } catch (InterruptedException | IOException e) {
+        } catch (IOException e) {
             scrapeErrorsTotal.inc();
             serverUpGauge.set(0);
         }
@@ -101,8 +116,8 @@ public class ApacheExporter {
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         OutputStreamWriter osw = new OutputStreamWriter(stream);
 
-            TextFormat.write004(osw,
-                    registry.metricFamilySamples());
+        TextFormat.write004(osw,
+                registry.metricFamilySamples());
 
         osw.flush();
         osw.close();
@@ -110,11 +125,34 @@ public class ApacheExporter {
         return new String(stream.toByteArray());
     }
 
-    public ArrayList<Collector.MetricFamilySamples> exportSamplesList() {
+    /**
+     * Returns an a string containing the apache metrics in prometheus format.
+     * Wenn the URL of the exporter is not reachable, it returns a metric
+     * "apache_scrape_errors_total" greater then zero.
+     * <p>
+     *
+     * @return      the string containing the apache metrics in prometheus format
+     */
+    public String export() throws IOException {
+
+        return export(null);
+
+    }
+
+    /**
+     * Returns an ArrayList of Collector.MetricFamilySamples containing the apache metrics in prometheus format.
+     * Wenn the URL of the exporter is not reachable, it returns a metric
+     * "apache_scrape_errors_total" greater then zero.
+     * <p>
+     *
+     * @param  interfaceName  the name of the interface to bind (ex : lo, eth0)
+     * @return      the string containing the apache metrics in prometheus format
+     */
+    public ArrayList<Collector.MetricFamilySamples> exportSamplesList(String interfaceName) {
         try {
-            mapStatusToMetrics(readApacheStatus());
+            mapStatusToMetrics(readApacheStatus(interfaceName));
             serverUpGauge.set(1);
-        } catch (InterruptedException | IOException e) {
+        } catch (IOException e) {
             scrapeErrorsTotal.inc();
             serverUpGauge.set(0);
         }
@@ -123,8 +161,21 @@ public class ApacheExporter {
 
     }
 
+    /**
+     * Returns an ArrayList of Collector.MetricFamilySamples containing the apache metrics in prometheus format.
+     * Wenn the URL of the exporter is not reachable, it returns a metric
+     * "apache_scrape_errors_total" greater then zero.
+     * <p>
+     *
+     * @return      the string containing the apache metrics in prometheus format
+     */
+    public ArrayList<Collector.MetricFamilySamples> exportSamplesList() {
+        return exportSamplesList(null);
+    }
+
     private void mapStatusToMetrics(String statusData) {
         statusData.lines().parallel().forEach(line -> {
+
             String[] elems = line.split(":");
             if (elems.length < 2) {
                 return;
@@ -160,27 +211,61 @@ public class ApacheExporter {
         });
     }
 
-    String readApacheStatus() throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(getStatusUrl()))
-                .timeout(Duration.ofSeconds(5))
-                .GET()
+    String readApacheStatus(String interfaceName) throws IOException {
+
+        int timeoutSec = 5;
+        HttpGet getMethod = new HttpGet(getStatusUrl());
+
+        CloseableHttpClient client;
+        RequestConfig.Builder requestConfig = RequestConfig.custom();
+
+        if (interfaceName != null) {
+
+            //System.out.println("interface name: " + interfaceName);
+
+            NetworkInterface nif = NetworkInterface.getByName(interfaceName);
+            if (nif == null) {
+                throw new IOException("Interface not correct:" + interfaceName);
+            }
+
+            InetAddress address = null;
+            Enumeration<InetAddress> nifAddresses = nif.getInetAddresses();
+
+            while (nifAddresses.hasMoreElements()) {
+                address = nifAddresses.nextElement();
+                //System.out.println("address:" + address.getHostAddress());
+                if(address instanceof Inet4Address) break;
+               
+            }
+            
+            requestConfig.setLocalAddress(address);
+
+        }
+        requestConfig.setConnectTimeout(timeoutSec * 1000);
+        requestConfig.setConnectionRequestTimeout(timeoutSec * 1000);
+        requestConfig.setSocketTimeout(timeoutSec * 1000);
+
+
+        client = HttpClientBuilder
+                .create()
+                .setDefaultRequestConfig(requestConfig.build())
                 .build();
 
-        HttpClient client = HttpClient.newBuilder()
-                .build();
 
         scrapesTotal.inc();
         Instant start = Instant.now();
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        CloseableHttpResponse response = client.execute(getMethod);
+        String body = new BasicResponseHandler().handleResponse(response);
+
         Instant stop = Instant.now();
-        Duration d = Duration.between( start , stop );
+        Duration d = Duration.between(start, stop);
         double diff = ((double) d.getNano()) / 1_000_000 / 1000;
         scrapeDurationSeconds.inc(diff);
-        if (response.statusCode()>=400) {
+        if (response.getStatusLine().getStatusCode() >= 400) {
             scrapeErrorsTotal.inc();
         }
-        return response.body();
+        return body;
     }
 
     void handleGaugeValue(Gauge gauge, String rawValue) {
@@ -215,16 +300,26 @@ public class ApacheExporter {
 
     static String mapToState(int scoreValue) {
         switch (scoreValue) {
-            case '_': return "waiting";
-            case 'S': return "startup";
-            case 'R': return "read";
-            case 'W': return "reply";
-            case 'K': return "keepalive";
-            case 'D': return "dns";
-            case 'C': return "closing";
-            case 'L': return "logging";
-            case 'G': return "graceful_stop";
-            case '.': return "open_slot";
+            case '_':
+                return "waiting";
+            case 'S':
+                return "startup";
+            case 'R':
+                return "read";
+            case 'W':
+                return "reply";
+            case 'K':
+                return "keepalive";
+            case 'D':
+                return "dns";
+            case 'C':
+                return "closing";
+            case 'L':
+                return "logging";
+            case 'G':
+                return "graceful_stop";
+            case '.':
+                return "open_slot";
         }
 
         return "unknown";
