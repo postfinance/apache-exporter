@@ -80,7 +80,7 @@ Example:
 
 ```
   ApacheExporter exporter = new ApacheExporter("http://myhost:7070/midw-status?auto");
-  exporter.export("lo")
+  String result = exporter.export()
 ```
 
 * Second method
